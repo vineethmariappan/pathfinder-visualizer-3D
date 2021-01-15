@@ -32,14 +32,15 @@ export class HomeComponent implements OnInit {
     // this.row = [];
     this.queue = [];
     this.dir = [
-      [-1, 0],
       [0, 1],
       [1, 0],
       [1, 1],
       [-1, -1],
       [-1, 1],
       [1, -1],
-      [0, -1]
+      [0, -1],
+      [-1, 0]
+
     ];
     for (var j = 0; j < 10; j++) {
       this.matrix[j] = new Array(10);
@@ -86,8 +87,8 @@ export class HomeComponent implements OnInit {
     this.animate();
 
     // this.bfs();
-    this.matrix[7][7]=2;
-    this.generateCubes(7,7,"red");
+    this.matrix[7][5]=2;
+    this.generateCubes(7,5,"red");
     this.dfs(3,3);
 
   }
@@ -117,7 +118,8 @@ export class HomeComponent implements OnInit {
           if(this.matrix[x + this.dir[d][0]][y + this.dir[d][1]]==2){
             // alert("found!");
             this.generateCubes(x, y ,"blue");
-            return new Promise((resolve,reject)=>{
+            return new Promise(async(resolve,reject)=>{
+              await this.timer(100);
               resolve(true);
             })
           }
@@ -130,7 +132,8 @@ export class HomeComponent implements OnInit {
           });
           if(ok){
             this.generateCubes(x, y ,"blue");
-            return new Promise((resolve,reject)=>{
+            return new Promise(async(resolve,reject)=>{
+              await this.timer(100);
               resolve(true);
             });
           }
