@@ -21,15 +21,22 @@ export class HomeComponent implements OnInit {
   matrix: any;
   row: any;
   queue: any;
+  q1:any;
+  q2:any;
+  v1:any;
+  v2:any;
+  cur1:any;
+  cur2:any;
   cur: any;
   dir: any;
   rayCaster: any;
   mousePosition: any;
-  intersected_object:any;
-  x_limit:any;
-  y_limit:any;
-  block_flag:any;
-  orbitControl:any;
+  intersected_object: any;
+  x_limit: any;
+  y_limit: any;
+  block_flag: any;
+  orbitControl: any;
+  visited:any;
   constructor() {}
   // ngOnChanges(intersected_object: any, block_flag:any){
   //   // console.log("ONCHANGE")
@@ -39,10 +46,15 @@ export class HomeComponent implements OnInit {
   // }
   async ngOnInit() {
     this.cur = 0;
-    this.block_flag=false;
+    this.block_flag = false;
     this.matrix = new Array(10);
+    this.visited = new Array(10);
     // this.row = [];
     this.queue = [];
+    this.q1=[];
+    this.q2=[];
+    this.v1=[];
+    this.v2=[];
     this.dir = [
       [0, 1],
       [1, 0],
@@ -53,14 +65,16 @@ export class HomeComponent implements OnInit {
       [0, -1],
       [-1, 0]
     ];
-    this.x_limit=30;
-    this.y_limit=30;
+    this.x_limit = 30;
+    this.y_limit = 30;
     for (var j = 0; j < this.x_limit; j++) {
       this.matrix[j] = new Array(this.y_limit);
+      this.visited[j]=new Array(this.y_limit);
     }
     for (var i = 0; i < this.x_limit; i++) {
       for (var j = 0; j < this.y_limit; j++) {
         this.matrix[i][j] = 0;
+        this.visited[i][j]={};
       }
     }
     this.x = 2;
@@ -97,11 +111,14 @@ export class HomeComponent implements OnInit {
     this.scene.add(this.plane);
     this.camera.position.z = 15;
     // this.camera.rotation.z=2;
-    this.orbitControl = new OrbitControls(this.camera, this.renderer.domElement);
+    this.orbitControl = new OrbitControls(
+      this.camera,
+      this.renderer.domElement
+    );
     // this.orbitControl.ena=false;
     window.addEventListener('mousemove', this.onmousemove, false);
-    window.addEventListener('pointerdown', this.onmousedown, false );
-    window.addEventListener('pointerup', this.onmouseup, false );
+    window.addEventListener('pointerdown', this.onmousedown, false);
+    window.addEventListener('pointerup', this.onmouseup, false);
     this.matrix[15][15] = 2;
     this.generateCubes(15, 15, 'red');
     this.animate();
@@ -113,9 +130,9 @@ export class HomeComponent implements OnInit {
     const intersects = this.rayCaster.intersectObjects(this.scene.children);
 
     // for (let i = 0; i < intersects.length; i++) {
-      // intersects[i].object.material.color.set(0xff0000);
-      // console.log(intersects[0].point);
-      this.intersected_object=intersects[0].point;
+    // intersects[i].object.material.color.set(0xff0000);
+    // console.log(intersects[0].point);
+    this.intersected_object = intersects[0].point;
     // }
     // console.log(this.intersected_object);
     this.onPointerChange();
@@ -173,7 +190,7 @@ export class HomeComponent implements OnInit {
 
   async bfs(start_x: number, start_y: number) {
     this.matrix[start_x][start_y] = 1;
-    this.generateCubes(start_x, start_x, 'blue');
+    this.generateCubes(start_x, start_y, 'blue');
     this.queue.push([{ x: start_x, y: start_y }]);
     while (this.queue.length > 0) {
       let cur = this.queue[0];
@@ -214,8 +231,77 @@ export class HomeComponent implements OnInit {
       }
       await this.timer(10);
     }
-    console.log('OVER');
+    // console.log('OVER');
+    // console.log(this.matrix);
+    // console.log(this.queue);
+  }
+  async bi_bfs(start_x: number, start_y: number) {
+    this.matrix[start_x][start_y] = 1;
+    this.v1.push({x:start_x,y:start_y});
+    this.v2.push({x:15,y:15});
+    this.generateCubes(start_x, start_y, 'blue');
+    this.q1.push([{ x: start_x, y: start_y }]);
+    this.q2.push([{x:15,y:15}]);
+    while (this.q1.length > 0 && this.q2.length>0) {
+      if(this.q1.length>this.q2.length){
+        this.queue=this.q1;
+        this.q1=this.q2;
+        this.q2=this.queue;
+        this.v1=this.queue;
+        this.v1=this.v2;
+        this.v2=this.queue;
+      }
+      this.queue=[];
+      let cur = this.q1[0];
+      // console.log(this.q1);
+
+      this.q1.shift();
+      for (let d = 0; d < 4; d++) {
+        // problem over here
+        if (
+          this.isValid(
+            cur[cur.length - 1].x + this.dir[d][0],
+            cur[cur.length - 1].y + this.dir[d][1]
+          ) == true
+        ) {
+          if (this.v2.find((obj:any)=>{ return obj.x==cur[cur.length - 1].x + this.dir[d][0] && obj.y==cur[cur.length - 1].y + this.dir[d][1]})) {
+            for (var i = 1; i < cur.length; i++) {
+              this.generateCubes(cur[i].x, cur[i].y, 'blue');
+              await this.timer(100);
+            }
+            cur=this.visited[cur[cur.length - 1].x + this.dir[d][0]][cur[cur.length - 1].y + this.dir[d][1]];
+            for (var i = 1; i < cur.length; i++) {
+              this.generateCubes(cur[i].x, cur[i].y, 'blue');
+              await this.timer(100);
+            }
+            console.log("BI DONE")
     console.log(this.matrix);
+
+            return;
+          }
+          console.log("going on")
+          this.generateCubes(
+            cur[cur.length - 1].x + this.dir[d][0],
+            cur[cur.length - 1].y + this.dir[d][1],
+            'lime'
+          );
+          this.matrix[cur[cur.length - 1].x + this.dir[d][0]][
+            cur[cur.length - 1].y + this.dir[d][1]
+          ] = 1;
+          this.v1.push({x:cur[cur.length - 1].x + this.dir[d][0],y:cur[cur.length - 1].y + this.dir[d][1]});
+          cur.push({
+            x: cur[cur.length - 1].x + this.dir[d][0],
+            y: cur[cur.length - 1].y + this.dir[d][1]
+          });
+          this.visited[cur[cur.length - 1].x][cur[cur.length - 1].y]=cur.slice();
+          this.q1.push(cur.slice());
+          cur.pop();
+        }
+      }
+
+      await this.timer(10);
+    }
+    // console.log('OVER');
     // console.log(this.queue);
   }
   timer(ms: any) {
@@ -238,7 +324,8 @@ export class HomeComponent implements OnInit {
       y >= 0 &&
       x < this.matrix.length &&
       y < this.matrix[x].length &&
-      this.matrix[x][y] != 1 && this.matrix[x][y] != 3
+      this.matrix[x][y] != 1 &&
+      this.matrix[x][y] != 3
     );
   }
 
@@ -250,51 +337,50 @@ export class HomeComponent implements OnInit {
     this.mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
   };
-  onmousedown = (event: MouseEvent) =>{
+  onmousedown = (event: MouseEvent) => {
     event.preventDefault();
-    if(event.ctrlKey){
-      this.orbitControl.enabled=false;
-      this.block_flag=true;
+    if (event.ctrlKey) {
+      this.orbitControl.enabled = false;
+      this.block_flag = true;
       // console.log(this.block_flag);
       // console.log(this.orbitControl)
-  }
-
-  }
-  onmouseup = (event:MouseEvent) =>{
+    }
+  };
+  onmouseup = (event: MouseEvent) => {
     event.preventDefault();
-    this.block_flag=false;
-    this.orbitControl.enabled=true;
-    console.log(this.orbitControl)
+    this.block_flag = false;
+    this.orbitControl.enabled = true;
+    console.log(this.orbitControl);
     // console.log(this.block_flag);
-  }
-  placeNewBlock(){
-    this.intersected_object.x = Math.round( this.intersected_object.x );
-    this.intersected_object.y = Math.round( this.intersected_object.y );
-    if(this.validateGrid(this.intersected_object.x,this.intersected_object.y)){
-      this.placeBlock(this.intersected_object.x,this.intersected_object.y);
+  };
+  placeNewBlock() {
+    this.intersected_object.x = Math.round(this.intersected_object.x);
+    this.intersected_object.y = Math.round(this.intersected_object.y);
+    if (
+      this.validateGrid(this.intersected_object.x, this.intersected_object.y)
+    ) {
+      this.placeBlock(this.intersected_object.x, this.intersected_object.y);
       console.log(this.intersected_object.x);
       console.log(this.intersected_object.y);
     }
   }
-  validateGrid(x:number,y:number){
-    return x<this.x_limit && y<this.y_limit && x>=0 && y>=0;
+  validateGrid(x: number, y: number) {
+    return x < this.x_limit && y < this.y_limit && x >= 0 && y >= 0;
   }
   // 3 -> block
-  placeBlock(x:number, y:number){
-    this.matrix[x][y]=3;
-    this.generateCubes(x,y,'black');
+  placeBlock(x: number, y: number) {
+    this.matrix[x][y] = 3;
+    this.generateCubes(x, y, 'black');
   }
-  start(){
-    this.bfs(10, 10);
+  start() {
+    // this.bfs(10, 10);
+    this.bi_bfs(10, 10);
     // this.dfs(10,10,true);
-
   }
-  onPointerChange(){
-    // console.log("ONCHANGE")
-    if(this.block_flag){
-      console.log("OK")
+  onPointerChange() {
+    if (this.block_flag) {
+      console.log('OK');
       this.placeNewBlock();
     }
   }
-
 }
