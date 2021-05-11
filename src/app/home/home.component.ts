@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { ThrowStmt } from '@angular/compiler';
-import { CineonToneMapping } from 'three';
+import { CineonToneMapping, CylinderBufferGeometry } from 'three';
+import { __core_private_testing_placeholder__ } from '@angular/core/testing';
+// import { AnyTxtRecord } from 'dns';
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
@@ -37,6 +39,20 @@ export class HomeComponent implements OnInit {
   block_flag: any;
   orbitControl: any;
   visited:any;
+  bfs_flag:any;
+  dfs_flag:any;
+  bibfs_flag:any;
+  selected_algo:any;
+  set_target:any;
+  set_source:any;
+  prev_target_x:any;
+  prev_target_y:any;
+  src_x:any;
+  src_y:any;
+  closedList:any;
+  openedList:any;
+  cellDetails:any;
+  astar_flag:any;
   constructor() {}
   // ngOnChanges(intersected_object: any, block_flag:any){
   //   // console.log("ONCHANGE")
@@ -47,14 +63,19 @@ export class HomeComponent implements OnInit {
   async ngOnInit() {
     this.cur = 0;
     this.block_flag = false;
-    this.matrix = new Array(10);
-    this.visited = new Array(10);
+    this.bfs_flag=false;
+    this.dfs_flag=false;
+    this.bibfs_flag=false;
     // this.row = [];
     this.queue = [];
     this.q1=[];
     this.q2=[];
     this.v1=[];
     this.v2=[];
+    // this.closedSet=[];
+    this.selected_algo="Depth First Algorithm";
+    this.set_target=false;
+    this.set_source=false;
     this.dir = [
       [0, 1],
       [1, 0],
@@ -65,18 +86,32 @@ export class HomeComponent implements OnInit {
       [0, -1],
       [-1, 0]
     ];
-    this.x_limit = 30;
-    this.y_limit = 30;
+
+    this.x_limit = 100;
+    this.y_limit = 100;
+    this.matrix = new Array(this.x_limit);
+    this.cellDetails = new Array(this.x_limit);
+    this.visited = new Array(this.x_limit);
+    this.closedList = new Array(this.x_limit);
+    this.openedList=new Set();
     for (var j = 0; j < this.x_limit; j++) {
       this.matrix[j] = new Array(this.y_limit);
       this.visited[j]=new Array(this.y_limit);
+      this.cellDetails[j]=new Array(this.y_limit);
+      this.closedList[j]=new Array(this.y_limit);
     }
     for (var i = 0; i < this.x_limit; i++) {
       for (var j = 0; j < this.y_limit; j++) {
         this.matrix[i][j] = 0;
         this.visited[i][j]={};
+        this.cellDetails[i][j]={f:1000000.0,g:1000000.0,h:1000000.0,parent_x:-1,parent_y:-1};
+        this.closedList[i][j]=false;
       }
     }
+    this.src_x=50;
+    this.src_y=70;
+    // this.placeSource(this.src_x,this.src_y);
+
     this.x = 2;
     window.addEventListener('resize', () => {
       // responsive window
@@ -120,7 +155,10 @@ export class HomeComponent implements OnInit {
     window.addEventListener('pointerdown', this.onmousedown, false);
     window.addEventListener('pointerup', this.onmouseup, false);
     this.matrix[15][15] = 2;
-    this.generateCubes(15, 15, 'red');
+    this.prev_target_x=90;
+    this.prev_target_y=90;
+    this.placeTarget(90,90);
+    // this.generateCubes(15, 15, 'red');
     this.animate();
     // this.bfs(2,1);
   }
@@ -132,7 +170,8 @@ export class HomeComponent implements OnInit {
     // for (let i = 0; i < intersects.length; i++) {
     // intersects[i].object.material.color.set(0xff0000);
     // console.log(intersects[0].point);
-    this.intersected_object = intersects[0].point;
+    if(intersects.length>0)
+        this.intersected_object = intersects[0].point;
     // }
     // console.log(this.intersected_object);
     this.onPointerChange();
@@ -238,48 +277,51 @@ export class HomeComponent implements OnInit {
   async bi_bfs(start_x: number, start_y: number) {
     this.matrix[start_x][start_y] = 1;
     this.v1.push({x:start_x,y:start_y});
-    this.v2.push({x:15,y:15});
+    this.v2.push({x:this.prev_target_x,y:this.prev_target_y});
     this.generateCubes(start_x, start_y, 'blue');
     this.q1.push([{ x: start_x, y: start_y }]);
-    this.q2.push([{x:15,y:15}]);
+    this.q2.push([{x:this.prev_target_x,y:this.prev_target_y}]);
     while (this.q1.length > 0 && this.q2.length>0) {
       if(this.q1.length>this.q2.length){
         this.queue=this.q1;
         this.q1=this.q2;
         this.q2=this.queue;
-        this.v1=this.queue;
+        this.queue=this.v1;
         this.v1=this.v2;
         this.v2=this.queue;
       }
       this.queue=[];
       let cur = this.q1[0];
-      // console.log(this.q1);
 
       this.q1.shift();
       for (let d = 0; d < 4; d++) {
-        // problem over here
-        if (
-          this.isValid(
-            cur[cur.length - 1].x + this.dir[d][0],
-            cur[cur.length - 1].y + this.dir[d][1]
-          ) == true
-        ) {
-          if (this.v2.find((obj:any)=>{ return obj.x==cur[cur.length - 1].x + this.dir[d][0] && obj.y==cur[cur.length - 1].y + this.dir[d][1]})) {
+        let x=cur[cur.length - 1].x + this.dir[d][0];
+        let y=cur[cur.length - 1].y + this.dir[d][1];
+        if (x >= 0 &&
+          y >= 0 &&
+          x < this.matrix.length &&
+          y < this.matrix[x].length && this.matrix[x][y]!=2) {
+          let val=false;
+          for(let o of this.v2){
+            if(JSON.stringify(o)==JSON.stringify({x:cur[cur.length - 1].x + this.dir[d][0],y:cur[cur.length - 1].y + this.dir[d][1]})){
+               val=true;
+            }
+          }
+          if (val) {
             for (var i = 1; i < cur.length; i++) {
               this.generateCubes(cur[i].x, cur[i].y, 'blue');
               await this.timer(100);
             }
-            cur=this.visited[cur[cur.length - 1].x + this.dir[d][0]][cur[cur.length - 1].y + this.dir[d][1]];
-            for (var i = 1; i < cur.length; i++) {
+            cur=this.visited[cur[cur.length - 1].x][cur[cur.length - 1].y];
+            for (var i = cur.length-1; i >=1; i--) {
               this.generateCubes(cur[i].x, cur[i].y, 'blue');
               await this.timer(100);
             }
-            console.log("BI DONE")
-    console.log(this.matrix);
 
             return;
           }
-          console.log("going on")
+          if(this.matrix[x][y]==1) continue;
+
           this.generateCubes(
             cur[cur.length - 1].x + this.dir[d][0],
             cur[cur.length - 1].y + this.dir[d][1],
@@ -293,7 +335,8 @@ export class HomeComponent implements OnInit {
             x: cur[cur.length - 1].x + this.dir[d][0],
             y: cur[cur.length - 1].y + this.dir[d][1]
           });
-          this.visited[cur[cur.length - 1].x][cur[cur.length - 1].y]=cur.slice();
+          if(cur[cur.length - 1].x + this.dir[d][0]<this.x_limit &&cur[cur.length - 1].y + this.dir[d][1]<this.y_limit && cur[cur.length - 1].x + this.dir[d][0]>=0 && cur[cur.length - 1].y + this.dir[d][1]>=0)
+            this.visited[cur[cur.length - 1].x+ this.dir[d][0]][cur[cur.length - 1].y+this.dir[d][1]]=cur.slice();
           this.q1.push(cur.slice());
           cur.pop();
         }
@@ -303,6 +346,57 @@ export class HomeComponent implements OnInit {
     }
     // console.log('OVER');
     // console.log(this.queue);
+  }
+  async AStar(start_x: number, start_y: number){
+    // this.closedSet=[];
+    this.openedList.add({cost:0,x:start_x,y:start_y});
+    this.cellDetails[start_x][start_y].f=0.0;
+    this.cellDetails[start_x][start_y].g=0.0;
+    this.cellDetails[start_x][start_y].h=0.0;
+    this.cellDetails[start_x][start_y].parent_i=start_x;
+    this.cellDetails[start_x][start_y].parent_j=start_y;
+    while(this.openedList.size>0){
+      var getit = this.openedList[Symbol.iterator]();
+
+      const p=getit.next().value;
+      console.log(this.openedList);
+      this.openedList.delete(p);
+      const x=p.x;
+      const y=p.y;
+      // remove first element
+      this.closedList[x][y]=true;
+      const dir = [-1, 0, 1, 0, -1];
+      for(var k=0;k<dir.length-1;k++){
+        if(this.isValid(x+dir[k],y+dir[k+1])){
+          if(x+dir[k]==this.prev_target_x && y+dir[k+1]==this.prev_target_y){
+            this.cellDetails[x+dir[k]][y+dir[k+1]].parent_x=x;
+            this.cellDetails[x+dir[k]][y+dir[k+1]].parent_y=y;
+            // trace the path
+            return;
+          }
+          else if(this.closedList[x+dir[k]][y+dir[k+1]]==false && this.matrix[x+dir[k]][y+dir[k+1]]!=1){
+            var gNew=this.cellDetails[x][y].g+1.0;
+            var hNew = this.calculateHValue(x+dir[k],y+dir[k+1]);
+            var fNew = gNew + hNew;
+            if(this.cellDetails[x+dir[k]][y+dir[k+1]].f==1000000.0 || this.cellDetails[x+dir[k]][y+dir[k+1]].f>fNew){
+              this.openedList.add({cost:fNew,x:x+dir[k],y:y+dir[k+1]});
+              this.generateCubes(x+dir[k],y+dir[k+1],"lime");
+
+              this.cellDetails[x+dir[k]][y+dir[k+1]].f = fNew;
+					    this.cellDetails[x+dir[k]][y+dir[k+1]].g = gNew;
+					    this.cellDetails[x+dir[k]][y+dir[k+1]].h = hNew;
+					    this.cellDetails[x+dir[k]][y+dir[k+1]].parent_x = x;
+					    this.cellDetails[x+dir[k]][y+dir[k+1]].parent_y = y;
+            }
+          }
+        await this.timer(100);
+        }
+
+      }
+    }
+  }
+  calculateHValue(x:any,y:any){
+    return Math.sqrt((x-this.prev_target_x)*(x-this.prev_target_x)+(y-this.prev_target_y)*(y-this.prev_target_y));
   }
   timer(ms: any) {
     return new Promise(res => setTimeout(res, ms));
@@ -344,15 +438,28 @@ export class HomeComponent implements OnInit {
       this.block_flag = true;
       // console.log(this.block_flag);
       // console.log(this.orbitControl)
+      // write code for set target and source
     }
   };
   onmouseup = (event: MouseEvent) => {
     event.preventDefault();
     this.block_flag = false;
     this.orbitControl.enabled = true;
-    console.log(this.orbitControl);
+    // console.log(this.orbitControl);
     // console.log(this.block_flag);
+    // write code for set target and source
   };
+  placeNewTarget() {
+    this.intersected_object.x = Math.round(this.intersected_object.x);
+    this.intersected_object.y = Math.round(this.intersected_object.y);
+    if (
+      this.validateGrid(this.intersected_object.x, this.intersected_object.y)
+    ) {
+      this.placeTarget(this.intersected_object.x, this.intersected_object.y);
+      console.log(this.intersected_object.x);
+      console.log(this.intersected_object.y);
+    }
+  }
   placeNewBlock() {
     this.intersected_object.x = Math.round(this.intersected_object.x);
     this.intersected_object.y = Math.round(this.intersected_object.y);
@@ -360,8 +467,8 @@ export class HomeComponent implements OnInit {
       this.validateGrid(this.intersected_object.x, this.intersected_object.y)
     ) {
       this.placeBlock(this.intersected_object.x, this.intersected_object.y);
-      console.log(this.intersected_object.x);
-      console.log(this.intersected_object.y);
+      // console.log(this.intersected_object.x);
+      // console.log(this.intersected_object.y);
     }
   }
   validateGrid(x: number, y: number) {
@@ -372,15 +479,75 @@ export class HomeComponent implements OnInit {
     this.matrix[x][y] = 3;
     this.generateCubes(x, y, 'black');
   }
+  placeTarget(x: number, y: number) {
+    console.log(x,y);
+    this.matrix[this.prev_target_x][this.prev_target_y]=0;
+    this.matrix[x][y] = 2;
+    this.prev_target_x=x;
+    this.prev_target_y=y;
+    this.generateCubes(x, y, 'red');
+  }
+  placeSource(x: number, y: number){
+    this.matrix[x][y]=0;
+    this.generateCubes(x, y, 'blue');
+  }
   start() {
-    // this.bfs(10, 10);
-    this.bi_bfs(10, 10);
-    // this.dfs(10,10,true);
+    if(this.bfs_flag)
+      this.bfs(this.src_x, this.src_y);
+    if(this.bibfs_flag)
+      this.bi_bfs(this.src_x, this.src_y);
+    if(this.dfs_flag)
+      this.dfs(this.src_x,this.src_y,true);
+    if(this.astar_flag)
+      this.AStar(this.src_x,this.src_y);
   }
   onPointerChange() {
     if (this.block_flag) {
-      console.log('OK');
       this.placeNewBlock();
     }
+    if(this.set_target){
+      this.placeNewTarget();
+    }
+    if(this.set_source){
+      this.placeNewSource(this.src_x,this.src_y);
+    }
+  }
+  placeNewSource(x: number, y: number){
+
+  }
+  setDFS(){
+    this.dfs_flag=true;
+    this.bfs_flag=this.bibfs_flag=this.astar_flag=false;
+    this.selected_algo="Depth First Search";
+  }
+  setBFS(){
+    this.dfs_flag=this.bibfs_flag=this.astar_flag=false;
+    this.bfs_flag=true;
+    this.selected_algo="Breadth First Search";
+  }
+  setBiBFS(){
+    this.bibfs_flag=true;
+    this.astar_flag=this.dfs_flag=this.bfs_flag=false;
+    this.selected_algo="Bi-Directional Breadth First Search";
+  }
+  setAStar(){
+    this.astar_flag=true;
+    this.bibfs_flag=this.dfs_flag=this.bfs_flag=false;
+    this.selected_algo="A* Shorest Path Algorithm";
+  }
+  reset(){
+    this.ngOnInit();
+  }
+  setTarget(){
+    this.set_source=this.block_flag=false;
+    this.set_target=true;
+  }
+  setSource(){
+    this.set_target=this.block_flag=false;
+    this.set_source=true;
+  }
+  setBlock(){
+    this.set_target=this.set_source=false;
+    this.block_flag=true;
   }
 }

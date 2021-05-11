@@ -1,1 +1,40 @@
-<button (click)="start()">start!</button>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <a class="navbar-brand" href="#">PathFinder Visualizer 3D</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" (click)="start()">Start</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setDFS()">Depth First Search</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setBFS()">Breadth First Search</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setAStar()">A* Algorithm</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setBiBFS()">Bi-Directional Breadth First Search</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setTarget()">Set Target</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" (click)="setSource()">Set Source</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+ Algorithm selected : <b>{{selected_algo}}</b>
+<!-- <button ">start!</button> -->
+<!-- <button (click)="setDFS()">Depth First Search</button> -->
+<!-- <button (click)="setBFS()">Breadth First Search</button>
+<button (click)="setBiBFS()">Bi-Directional Breadth First Search</button>
+<button (click)="reset()">Reset</button>
+<button (click)="setTarget()">Set Target</button>
+<button (click)="setSource()">Set Source</button> -->
+
