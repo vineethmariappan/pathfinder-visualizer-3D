@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { ThrowStmt } from '@angular/compiler';
 import { CineonToneMapping, CylinderBufferGeometry } from 'three';
 import { __core_private_testing_placeholder__ } from '@angular/core/testing';
+import Heap from 'heap-js';
+// import { SpriteText2D, textAlign } from 'three-text2d';
 // import { AnyTxtRecord } from 'dns';
 @Component({
   selector: 'app-home',
@@ -60,6 +62,8 @@ export class HomeComponent implements OnInit {
   //     this.placeNewBlock();
   //   }
   // }
+  customPriorityComparator = (a:any, b:any) => a.cost - b.cost;
+
   async ngOnInit() {
     this.cur = 0;
     this.block_flag = false;
@@ -93,7 +97,7 @@ export class HomeComponent implements OnInit {
     this.cellDetails = new Array(this.x_limit);
     this.visited = new Array(this.x_limit);
     this.closedList = new Array(this.x_limit);
-    this.openedList=new Set();
+    this.openedList=new Heap(this.customPriorityComparator);
     for (var j = 0; j < this.x_limit; j++) {
       this.matrix[j] = new Array(this.y_limit);
       this.visited[j]=new Array(this.y_limit);
@@ -110,7 +114,6 @@ export class HomeComponent implements OnInit {
     }
     this.src_x=50;
     this.src_y=70;
-    // this.placeSource(this.src_x,this.src_y);
 
     this.x = 2;
     window.addEventListener('resize', () => {
@@ -136,12 +139,23 @@ export class HomeComponent implements OnInit {
     this.mousePosition = new THREE.Vector2();
     // this.controls = new THREE.OrbitControls( this.camera );
     document.body.appendChild(this.renderer.domElement);
-
+    const loader = new THREE.TextureLoader();
     this.geometry = new THREE.PlaneGeometry(200, 200, 32);
     this.material = new THREE.MeshBasicMaterial({
-      color: 'yellow',
-      side: THREE.DoubleSide
+      // color: 'yellow',
+      side: THREE.DoubleSide,
+      map: loader.load('assets/yellow.png', function ( texture ) {
+
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.offset.set( 0, 0 );
+        texture.repeat.set( 200, 200 );
+
+    }
+
+      )
     });
+    // var sprite = new SpriteText2D("SPRITE", { align: textAlign.center,  font: '40px Arial', fillStyle: '#000000' , antialias: false })
+    // this.scene.add(sprite)
     this.plane = new THREE.Mesh(this.geometry, this.material);
     this.scene.add(this.plane);
     this.camera.position.z = 15;
@@ -154,10 +168,11 @@ export class HomeComponent implements OnInit {
     window.addEventListener('mousemove', this.onmousemove, false);
     window.addEventListener('pointerdown', this.onmousedown, false);
     window.addEventListener('pointerup', this.onmouseup, false);
-    this.matrix[15][15] = 2;
-    this.prev_target_x=90;
-    this.prev_target_y=90;
-    this.placeTarget(90,90);
+    this.matrix[35][35] = 2;
+    this.prev_target_x=35;
+    this.prev_target_y=35;
+    this.placeTarget(35,35);
+    this.placeSource(this.src_x,this.src_y);
     // this.generateCubes(15, 15, 'red');
     this.animate();
     // this.bfs(2,1);
@@ -295,12 +310,12 @@ export class HomeComponent implements OnInit {
 
       this.q1.shift();
       for (let d = 0; d < 4; d++) {
-        let x=cur[cur.length - 1].x + this.dir[d][0];
-        let y=cur[cur.length - 1].y + this.dir[d][1];
+        var x=cur[cur.length - 1].x + this.dir[d][0];
+        var y=cur[cur.length - 1].y + this.dir[d][1];
         if (x >= 0 &&
           y >= 0 &&
           x < this.matrix.length &&
-          y < this.matrix[x].length && this.matrix[x][y]!=2) {
+          y < this.matrix[x].length && this.matrix[x][y]!=3 && this.matrix[x][y]!=2) {
           let val=false;
           for(let o of this.v2){
             if(JSON.stringify(o)==JSON.stringify({x:cur[cur.length - 1].x + this.dir[d][0],y:cur[cur.length - 1].y + this.dir[d][1]})){
@@ -349,18 +364,17 @@ export class HomeComponent implements OnInit {
   }
   async AStar(start_x: number, start_y: number){
     // this.closedSet=[];
-    this.openedList.add({cost:0,x:start_x,y:start_y});
+  // const customPriorityComparator = (a:any, b:any) => a.priority - b.priority;
+
+    this.openedList.push({cost:0,x:start_x,y:start_y});
     this.cellDetails[start_x][start_y].f=0.0;
     this.cellDetails[start_x][start_y].g=0.0;
     this.cellDetails[start_x][start_y].h=0.0;
-    this.cellDetails[start_x][start_y].parent_i=start_x;
-    this.cellDetails[start_x][start_y].parent_j=start_y;
-    while(this.openedList.size>0){
-      var getit = this.openedList[Symbol.iterator]();
-
-      const p=getit.next().value;
-      console.log(this.openedList);
-      this.openedList.delete(p);
+    this.cellDetails[start_x][start_y].parent_x=start_x;
+    this.cellDetails[start_x][start_y].parent_y=start_y;
+    while(this.openedList.length>0){
+      const p=this.openedList.peek();
+      this.openedList.pop();
       const x=p.x;
       const y=p.y;
       // remove first element
@@ -372,14 +386,26 @@ export class HomeComponent implements OnInit {
             this.cellDetails[x+dir[k]][y+dir[k+1]].parent_x=x;
             this.cellDetails[x+dir[k]][y+dir[k+1]].parent_y=y;
             // trace the path
+            var child_x=x+dir[k],child_y=y+dir[k+1];
+            var par_x=this.cellDetails[child_x][child_y].parent_x;
+            var par_y = this.cellDetails[child_x][child_y].parent_y;
+            while(!(child_x==start_x && child_y==start_y)){
+              par_x=this.cellDetails[child_x][child_y].parent_x;
+              par_y=this.cellDetails[child_x][child_y].parent_y;
+              this.generateCubes(par_x,par_y,"blue");
+              await this.timer(10);
+              child_x=par_x;
+              child_y=par_y;
+            }
+            console.log(this.openedList);
             return;
           }
           else if(this.closedList[x+dir[k]][y+dir[k+1]]==false && this.matrix[x+dir[k]][y+dir[k+1]]!=1){
             var gNew=this.cellDetails[x][y].g+1.0;
             var hNew = this.calculateHValue(x+dir[k],y+dir[k+1]);
             var fNew = gNew + hNew;
-            if(this.cellDetails[x+dir[k]][y+dir[k+1]].f==1000000.0 || this.cellDetails[x+dir[k]][y+dir[k+1]].f>fNew){
-              this.openedList.add({cost:fNew,x:x+dir[k],y:y+dir[k+1]});
+            if(Math.floor(this.cellDetails[x+dir[k]][y+dir[k+1]].f)==1000000 || this.cellDetails[x+dir[k]][y+dir[k+1]].f>fNew){
+              this.openedList.push({cost:fNew,x:x+dir[k],y:y+dir[k+1]});
               this.generateCubes(x+dir[k],y+dir[k+1],"lime");
 
               this.cellDetails[x+dir[k]][y+dir[k+1]].f = fNew;
@@ -389,8 +415,8 @@ export class HomeComponent implements OnInit {
 					    this.cellDetails[x+dir[k]][y+dir[k+1]].parent_y = y;
             }
           }
-        await this.timer(100);
         }
+        await this.timer(2);
 
       }
     }
@@ -467,8 +493,6 @@ export class HomeComponent implements OnInit {
       this.validateGrid(this.intersected_object.x, this.intersected_object.y)
     ) {
       this.placeBlock(this.intersected_object.x, this.intersected_object.y);
-      // console.log(this.intersected_object.x);
-      // console.log(this.intersected_object.y);
     }
   }
   validateGrid(x: number, y: number) {

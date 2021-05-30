@@ -5,3 +5,22 @@ button {
   /* left: 50%; */
   /* top: 50%; */
   }
+
+  #info {
+    font-size: 22px;
+    font-family: 'Alegreya Sans SC', sans-serif;
+    position: absolute;
+    top: 70px;
+    width: 100%;
+    right: 35%;
+    text-align: center;
+    z-index: 100;
+    display:block;
+  }
+  .navbar{
+    font-family: 'Alegreya Sans SC', sans-serif;
+    font-size: 22px;
+  }
+.nav-link{
+  cursor:pointer;
+}
