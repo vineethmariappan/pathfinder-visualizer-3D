@@ -95,8 +95,8 @@ export class HomeComponent implements OnInit {
       [-1, 0]
     ];
 
-    this.x_limit = 100;
-    this.y_limit = 100;
+    this.x_limit = 101;
+    this.y_limit = 51;
     this.matrix = new Array(this.x_limit);
     this.cellDetails = new Array(this.x_limit);
     this.visited = new Array(this.x_limit);
@@ -110,7 +110,7 @@ export class HomeComponent implements OnInit {
     }
     for (var i = 0; i < this.x_limit; i++) {
       for (var j = 0; j < this.y_limit; j++) {
-        this.matrix[i][j] = 3;
+        this.matrix[i][j] = 0;
         this.visited[i][j]={};
         this.cellDetails[i][j]={f:1000000.0,g:1000000.0,h:1000000.0,parent_x:-1,parent_y:-1};
         this.cellDetails[i][j].visited=false;
@@ -158,23 +158,25 @@ export class HomeComponent implements OnInit {
     // this.controls = new THREE.OrbitControls( this.camera );
     document.body.appendChild(this.renderer.domElement);
     const loader = new THREE.TextureLoader();
-    this.geometry = new THREE.PlaneGeometry(200, 200, 32);
+    this.geometry = new THREE.PlaneGeometry(101, 51, 32);
     this.material = new THREE.MeshBasicMaterial({
-      // color: 'yellow',
+      color: 'yellow',
       side: THREE.DoubleSide,
-      map: loader.load('assets/yellow.png', function ( texture ) {
+    //   map: loader.load('assets/yellow.png', function ( texture ) {
 
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set( 0, 0 );
-        texture.repeat.set( 200, 200 );
+    //     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    //     texture.offset.set( 7, 13 );
+    //     texture.repeat.set( 100, 50 );
 
-    }
+    // }
 
-      )
+      // )
     });
     // var sprite = new SpriteText2D("SPRITE", { align: textAlign.center,  font: '40px Arial', fillStyle: '#000000' , antialias: false })
     // this.scene.add(sprite)
     this.plane = new THREE.Mesh(this.geometry, this.material);
+    this.plane.position.set(50,25,0);
+
     this.scene.add(this.plane);
     this.camera.position.z = 15;
     // this.camera.rotation.z=2;
@@ -183,8 +185,15 @@ export class HomeComponent implements OnInit {
       this.renderer.domElement
     );
     this.dfs_flag=true;
-    this.generateMaze();
-
+    // this.generateMaze();
+ //   console.log(this.matrix);
+    for(var i = 0;i<this.x_limit;i++){
+      this.matrix[0][i]=3;
+      this.matrix[i][0]=3;
+      this.matrix[this.x_limit-1][i]=3;
+      this.matrix[i][this.y_limit-1]=3;
+      // this.matrix[i][0]=3;
+    }
     for(var i=0;i<this.x_limit;i++){
       for(var j=0;j<this.y_limit;j++){
         if(this.matrix[i][j]==3){
@@ -196,10 +205,10 @@ export class HomeComponent implements OnInit {
     window.addEventListener('mousemove', this.onmousemove, false);
     window.addEventListener('pointerdown', this.onmousedown, false);
     window.addEventListener('pointerup', this.onmouseup, false);
-    this.matrix[98][98] = 2;
+    this.matrix[98][48] = 2;
     this.prev_target_x=98;
-    this.prev_target_y=98;
-    this.placeTarget(98,98);
+    this.prev_target_y=48;
+    this.placeTarget(98,48);
     this.placeSource(this.src_x,this.src_y);
     // this.generateCubes(15, 15, 'red');
     this.animate();
@@ -253,13 +262,13 @@ export class HomeComponent implements OnInit {
         await this.dfs(x + this.dir[d][0], y + this.dir[d][1], false).then(
           (val: any) => {
             ok = val;
-            console.log(val);
+            // console.log(val);
           }
         );
         if (ok) {
           if (!start) this.generateCubes(x, y, 'blue');
           return new Promise(async (resolve, reject) => {
-            await this.timer(100);
+            await this.timer(10);
             resolve(true);
           });
         }
@@ -312,7 +321,7 @@ export class HomeComponent implements OnInit {
           cur.pop();
         }
       }
-      await this.timer(10);
+      await this.timer(2);
     }
     // console.log('OVER');
     // console.log(this.matrix);
@@ -354,12 +363,12 @@ export class HomeComponent implements OnInit {
           if (val) {
             for (var i = 1; i < cur.length; i++) {
               this.generateCubes(cur[i].x, cur[i].y, 'blue');
-              await this.timer(100);
+              await this.timer(10);
             }
             cur=this.visited[cur[cur.length - 1].x][cur[cur.length - 1].y];
             for (var i = cur.length-1; i >=1; i--) {
               this.generateCubes(cur[i].x, cur[i].y, 'blue');
-              await this.timer(100);
+              await this.timer(10);
             }
 
             return;
@@ -386,7 +395,7 @@ export class HomeComponent implements OnInit {
         }
       }
 
-      await this.timer(10);
+      await this.timer(2);
     }
     // console.log('OVER');
     // console.log(this.queue);
@@ -448,15 +457,16 @@ export class HomeComponent implements OnInit {
           }
         }
         // console.log(this.openedList);
-        await this.timer(0.5);
 
       }
+      await this.timer(0.01);
+
     }
   }
 
  generateMaze(){
   //  var total_cells = this.x_limit*this.y_limit;
-  var total_cells=((this.x_limit-1)/2)*((this.y_limit-1)/2);;
+  var total_cells=((this.x_limit-2)/2)*((this.y_limit-2)/2);;
    var visitedCells=0;
    var randomX=this.src_y;
    var randomY =this.src_x;
