@@ -110,7 +110,7 @@ export class HomeComponent implements OnInit {
     }
     for (var i = 0; i < this.x_limit; i++) {
       for (var j = 0; j < this.y_limit; j++) {
-        this.matrix[i][j] = 0;
+        this.matrix[i][j] = 3;
         this.visited[i][j]={};
         this.cellDetails[i][j]={f:1000000.0,g:1000000.0,h:1000000.0,parent_x:-1,parent_y:-1};
         this.cellDetails[i][j].visited=false;
@@ -185,15 +185,15 @@ export class HomeComponent implements OnInit {
       this.renderer.domElement
     );
     this.dfs_flag=true;
-    // this.generateMaze();
+    this.generateMaze();
  //   console.log(this.matrix);
-    for(var i = 0;i<this.x_limit;i++){
-      this.matrix[0][i]=3;
-      this.matrix[i][0]=3;
-      this.matrix[this.x_limit-1][i]=3;
-      this.matrix[i][this.y_limit-1]=3;
-      // this.matrix[i][0]=3;
-    }
+    // for(var i = 0;i<this.x_limit;i++){
+    //   this.matrix[0][i]=3;
+    //   this.matrix[i][0]=3;
+    //   this.matrix[this.x_limit-1][i]=3;
+    //   this.matrix[i][this.y_limit-1]=3;
+    //   // this.matrix[i][0]=3;
+    // }
     for(var i=0;i<this.x_limit;i++){
       for(var j=0;j<this.y_limit;j++){
         if(this.matrix[i][j]==3){
